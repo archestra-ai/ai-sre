@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ai-sre-demo-config
+  namespace: ai-sre
+  labels:
+    app.kubernetes.io/name: ai-sre-demo
+    app.kubernetes.io/managed-by: argocd
+data:
+  FORCE_HEALTHY: "false"
