@@ -7,5 +7,13 @@ metadata:
     app.kubernetes.io/name: ai-sre-demo
     app.kubernetes.io/managed-by: argocd
 data:
+  # Set to "true" to force the application to always report healthy
+  # This is used for remediation when the app enters failure mode
   FORCE_HEALTHY: "false"
+  # Database connection settings
+  DATABASE_HOST: "ai-sre-postgres"
+  DATABASE_PORT: "5432"
+  DATABASE_NAME: "todos"
+  DATABASE_USER: "postgres"
+  # FOO is a test env var for GitOps demo
   FOO: "bar"
