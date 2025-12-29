@@ -67,7 +67,7 @@ def init_db():
 def is_healthy() -> bool:
     """
     Determine if the application should report as healthy.
-    
+
     Returns True if:
     - FORCE_HEALTHY environment variable is set to "true" (case-insensitive)
     - OR failure has not been triggered
@@ -105,7 +105,7 @@ def index():
 def health():
     """
     Health check endpoint.
-    
+
     Returns 200 if healthy, 500 if in failure mode.
     Used by Kubernetes liveness probe.
     """
@@ -161,7 +161,7 @@ def create_todo():
         data = request.get_json()
         if not data or "title" not in data:
             return jsonify({"error": "Title is required"}), 400
-        
+
         conn = get_db_connection()
         cur = conn.cursor()
         cur.execute(
@@ -193,10 +193,10 @@ def get_todo(todo_id):
         todo = cur.fetchone()
         cur.close()
         conn.close()
-        
+
         if todo is None:
             return jsonify({"error": "Todo not found"}), 404
-        
+
         return jsonify({"todo": dict(todo)}), 200
     except Exception as e:
         logger.error(f"Failed to get todo {todo_id}: {e}")
@@ -210,10 +210,10 @@ def update_todo(todo_id):
         data = request.get_json()
         if not data:
             return jsonify({"error": "Request body required"}), 400
-        
+
         conn = get_db_connection()
         cur = conn.cursor()
-        
+
         # Build dynamic update query
         updates = []
         values = []
@@ -226,23 +226,23 @@ def update_todo(todo_id):
         if "completed" in data:
             updates.append("completed = %s")
             values.append(data["completed"])
-        
+
         if not updates:
             return jsonify({"error": "No fields to update"}), 400
-        
+
         updates.append("updated_at = CURRENT_TIMESTAMP")
         values.append(todo_id)
-        
+
         query = f"UPDATE todos SET {', '.join(updates)} WHERE id = %s RETURNING *"
         cur.execute(query, values)
         todo = cur.fetchone()
         conn.commit()
         cur.close()
         conn.close()
-        
+
         if todo is None:
             return jsonify({"error": "Todo not found"}), 404
-        
+
         logger.info(f"Updated todo: {todo_id}")
         return jsonify({"todo": dict(todo)}), 200
     except Exception as e:
@@ -261,10 +261,10 @@ def delete_todo(todo_id):
         conn.commit()
         cur.close()
         conn.close()
-        
+
         if deleted is None:
             return jsonify({"error": "Todo not found"}), 404
-        
+
         logger.info(f"Deleted todo: {todo_id}")
         return jsonify({"message": "Todo deleted successfully"}), 200
     except Exception as e:
@@ -280,7 +280,7 @@ def delete_todo(todo_id):
 def trigger_failure():
     """
     Trigger failure mode.
-    
+
     After calling this endpoint:
     - Health checks will return 500
     - The application will crash after a few failed health checks
@@ -300,7 +300,7 @@ def trigger_failure():
 def remediate():
     """
     Reset failure state.
-    
+
     This clears the internal failure flag, allowing health checks to pass again.
     Note: If FORCE_HEALTHY is set to true, health checks pass regardless.
     """
@@ -317,7 +317,7 @@ def remediate():
 def crash():
     """
     Immediately crash the application.
-    
+
     This is an alternative to trigger-failure that causes an immediate exit
     rather than waiting for health check failures.
     """
@@ -333,8 +333,8 @@ if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
     logger.info(f"Starting AI SRE Demo application on port {port}")
     logger.info(f"FORCE_HEALTHY={os.environ.get('FORCE_HEALTHY', 'false')}")
-    
+
     # Initialize database on startup
     init_db()
-    
+
     app.run(host="0.0.0.0", port=port)
