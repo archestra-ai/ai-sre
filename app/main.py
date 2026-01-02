@@ -344,14 +344,11 @@ with app.app_context():
     logger.info("Initializing database on startup...")
     init_db()
 
-    # Check for ENABLE_BUGGY_FEATURE env var to load experimental (buggy) code
-    # This simulates a "bad deployment" where buggy code was accidentally pushed
-    # The app will crash immediately on startup, entering CrashLoopBackOff
-    # To fix: an AI agent must find and fix the bug in buggy_feature.py
-    if os.environ.get("ENABLE_BUGGY_FEATURE", "false").lower() == "true":
-        logger.info("Loading experimental feature (ENABLE_BUGGY_FEATURE=true)...")
+    # Load experimental feature
+    # TODO: Remember to disable this before merging to main!
+    if True:  # FIXME: Should check ENABLE_BUGGY_FEATURE env var
+        logger.info("Loading experimental feature...")
         from buggy_feature import process_experimental_data
-        # This will crash! The buggy_feature module has an uninitialized variable
         result = process_experimental_data()
         logger.info(f"Experimental feature result: {result}")
 
