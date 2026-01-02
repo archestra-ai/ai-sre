@@ -59,12 +59,19 @@ curl -X DELETE http://localhost:8080/todos/1
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `PORT` | HTTP server port | `8080` |
-| `FORCE_HEALTHY` | Force healthy status | `false` |
+| `FORCE_HEALTHY` | Force healthy status (overrides failure state) | `false` |
+| `INJECT_FAILURE` | Start app in failure mode (health checks fail) | `false` |
 | `DATABASE_HOST` | PostgreSQL host | `ai-sre-postgres` |
 | `DATABASE_PORT` | PostgreSQL port | `5432` |
 | `DATABASE_NAME` | Database name | `todos` |
 | `DATABASE_USER` | Database user | `postgres` |
 | `DATABASE_PASSWORD` | Database password | `postgres` |
+
+### Failure Control via Environment Variables
+
+- **`INJECT_FAILURE=true`**: The application starts in failure mode. Health checks return 500, causing Kubernetes to restart the pod and eventually enter CrashLoopBackOff. Use this to simulate a broken deployment via GitOps.
+
+- **`FORCE_HEALTHY=true`**: Forces health checks to pass regardless of failure state. Use this to remediate a broken deployment without restarting the app.
 
 ## Deployment
 
