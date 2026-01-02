@@ -344,13 +344,14 @@ with app.app_context():
     logger.info("Initializing database on startup...")
     init_db()
 
-    # Load experimental feature
-    # TODO: Remember to disable this before merging to main!
-    if True:  # FIXME: Should check ENABLE_BUGGY_FEATURE env var
-        logger.info("Loading experimental feature...")
+    # Load experimental feature if enabled
+    if os.environ.get("ENABLE_BUGGY_FEATURE", "false").lower() == "true":
+        logger.info("Loading experimental feature (ENABLE_BUGGY_FEATURE=true)...")
         from buggy_feature import process_experimental_data
         result = process_experimental_data()
         logger.info(f"Experimental feature result: {result}")
+    else:
+        logger.info("Experimental feature disabled (ENABLE_BUGGY_FEATURE=false)")
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
