@@ -10,9 +10,6 @@ A Flask application with PostgreSQL backend that demonstrates:
 import os
 import sys
 import logging
-import random
-import threading
-import time
 from flask import Flask, jsonify, request
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -342,31 +339,21 @@ def crash():
 # Application Startup
 # =============================================================================
 
-def _delayed_failure_trigger(delay_seconds: int):
-    """Background thread that triggers failure after a delay."""
-    global _failure_triggered
-    logger.warning(f"INJECT_FAILURE=true - Failure will trigger in {delay_seconds} seconds...")
-    time.sleep(delay_seconds)
-    _failure_triggered = True
-    logger.error(f"DELAYED FAILURE TRIGGERED after {delay_seconds}s - Health checks will now fail!")
-
-
 # Initialize database on module load (works with gunicorn)
 with app.app_context():
     logger.info("Initializing database on startup...")
     init_db()
 
-    # Check for INJECT_FAILURE env var to trigger delayed failure
-    # Waits 60-90 seconds (random) before triggering so pod passes initial health checks
-    if os.environ.get("INJECT_FAILURE", "false").lower() == "true":
-        delay = random.randint(60, 90)
-        failure_thread = threading.Thread(
-            target=_delayed_failure_trigger,
-            args=(delay,),
-            daemon=True
-        )
-        failure_thread.start()
-        logger.warning(f"INJECT_FAILURE=true - Delayed failure scheduled in {delay}s (app will be healthy until then)")
+    # Check for ENABLE_BUGGY_FEATURE env var to load experimental (buggy) code
+    # This simulates a "bad deployment" where buggy code was accidentally pushed
+    # The app will crash immediately on startup, entering CrashLoopBackOff
+    # To fix: an AI agent must find and fix the bug in buggy_feature.py
+    if os.environ.get("ENABLE_BUGGY_FEATURE", "false").lower() == "true":
+        logger.info("Loading experimental feature (ENABLE_BUGGY_FEATURE=true)...")
+        from buggy_feature import process_experimental_data
+        # This will crash! The buggy_feature module has an uninitialized variable
+        result = process_experimental_data()
+        logger.info(f"Experimental feature result: {result}")
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))

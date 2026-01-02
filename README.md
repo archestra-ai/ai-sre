@@ -56,22 +56,29 @@ curl -X DELETE http://localhost:8080/todos/1
 
 ## Environment Variables
 
-| Variable            | Description                                    | Default           |
-| ------------------- | ---------------------------------------------- | ----------------- |
-| `PORT`              | HTTP server port                               | `8080`            |
-| `FORCE_HEALTHY`     | Force healthy status (overrides failure state) | `false`           |
-| `INJECT_FAILURE`    | Start app in failure mode (health checks fail) | `false`           |
-| `DATABASE_HOST`     | PostgreSQL host                                | `ai-sre-postgres` |
-| `DATABASE_PORT`     | PostgreSQL port                                | `5432`            |
-| `DATABASE_NAME`     | Database name                                  | `todos`           |
-| `DATABASE_USER`     | Database user                                  | `postgres`        |
-| `DATABASE_PASSWORD` | Database password                              | `postgres`        |
+| Variable               | Description                                    | Default           |
+| ---------------------- | ---------------------------------------------- | ----------------- |
+| `PORT`                 | HTTP server port                               | `8080`            |
+| `FORCE_HEALTHY`        | Force healthy status (overrides failure state) | `false`           |
+| `ENABLE_BUGGY_FEATURE` | Enable buggy code that crashes app on startup  | `false`           |
+| `DATABASE_HOST`        | PostgreSQL host                                | `ai-sre-postgres` |
+| `DATABASE_PORT`        | PostgreSQL port                                | `5432`            |
+| `DATABASE_NAME`        | Database name                                  | `todos`           |
+| `DATABASE_USER`        | Database user                                  | `postgres`        |
+| `DATABASE_PASSWORD`    | Database password                              | `postgres`        |
 
-### Failure Control via Environment Variables
+### Failure Simulation for AI SRE Demo
 
-- **`INJECT_FAILURE=true`**: The application starts healthy, then **after 60-90 seconds (random delay)** begins failing health checks. This delay allows Kubernetes to complete the rollout before the failure kicks in, simulating a realistic "bad deployment" scenario where the app passes initial checks but fails later.
+- **`ENABLE_BUGGY_FEATURE=true`**: Loads `buggy_feature.py` which contains an intentional bug. The app crashes **immediately on startup** with an `AttributeError`, causing Kubernetes to enter CrashLoopBackOff. This simulates a "bad deployment" scenario.
 
-- **`FORCE_HEALTHY=true`**: Forces health checks to pass regardless of failure state. Use this to remediate a broken deployment without restarting the app.
+  **To remediate**: An AI agent must:
+
+  1. Investigate logs to find the error (`AttributeError: 'NoneType' object has no attribute 'upper'`)
+  2. Locate `buggy_feature.py` in the repository
+  3. Fix the bug (initialize `data` variable properly)
+  4. Push the fix to trigger ArgoCD deployment
+
+- **`FORCE_HEALTHY=true`**: Forces health checks to pass regardless of failure state. Use for manual remediation.
 
 ## Deployment
 
@@ -97,7 +104,20 @@ make help
 
 ## Demo Flow
 
+### Option A: API-triggered failure (quick demo)
+
 1. **Normal Operation**: App serves todo CRUD, health checks pass
 2. **Trigger Failure**: `POST /trigger-failure` causes health checks to fail
 3. **Observe**: Grafana alerts fire, notifications sent to MS Teams via OnCall
-4. **Remediate**: Set `FORCE_HEALTHY=true` in ConfigMap or `POST /remediate`
+4. **Remediate**: `POST /remediate` or set `FORCE_HEALTHY=true` in ConfigMap
+
+### Option B: Code-based failure (AI SRE demo)
+
+1. **Normal Operation**: App is running healthy
+2. **Trigger Failure**: Set `ENABLE_BUGGY_FEATURE=true` in ConfigMap, ArgoCD syncs
+3. **App Crashes**: Pod enters CrashLoopBackOff due to bug in `buggy_feature.py`
+4. **Observe**: Grafana alerts fire, AI agent receives alert
+5. **AI Investigation**: Agent uses MCP tools to check logs, find error, locate code
+6. **AI Fix**: Agent fixes bug in `buggy_feature.py`, pushes commit to repo
+7. **ArgoCD Deploy**: ArgoCD detects change, deploys fixed code
+8. **Recovery**: App starts successfully, alerts resolve

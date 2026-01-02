@@ -10,12 +10,12 @@ data:
   # Set to "true" to force the application to always report healthy
   # This is used for remediation when the app enters failure mode
   FORCE_HEALTHY: "false"
-  # Set to "true" to inject a failure on startup (causes health checks to fail)
-  INJECT_FAILURE: "true"
+  # Set to "true" to enable the buggy experimental feature
+  # This causes the app to crash immediately on startup (CrashLoopBackOff)
+  # To fix: AI agent must fix the bug in buggy_feature.py and push a commit
+  ENABLE_BUGGY_FEATURE: "false"
   # Database connection settings
   DATABASE_HOST: "ai-sre-postgres"
   DATABASE_PORT: "5432"
   DATABASE_NAME: "todos"
   DATABASE_USER: "postgres"
-  # FOO is a test env var for GitOps demo
-  FOO: "bar"

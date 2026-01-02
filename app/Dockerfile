@@ -22,7 +22,7 @@ RUN useradd --create-home --shell /bin/bash appuser
 COPY --from=builder /root/.local /home/appuser/.local
 
 # Copy application code
-COPY main.py .
+COPY *.py .
 
 # Set environment variables
 ENV PATH=/home/appuser/.local/bin:$PATH
