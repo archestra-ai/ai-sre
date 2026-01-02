@@ -11,28 +11,28 @@ A simple Todo CRUD API built with Flask and PostgreSQL, designed for demonstrati
 
 ### Todo CRUD
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/todos` | List all todos |
-| POST | `/todos` | Create a new todo |
-| GET | `/todos/<id>` | Get a specific todo |
-| PUT | `/todos/<id>` | Update a todo |
-| DELETE | `/todos/<id>` | Delete a todo |
+| Method | Endpoint      | Description         |
+| ------ | ------------- | ------------------- |
+| GET    | `/todos`      | List all todos      |
+| POST   | `/todos`      | Create a new todo   |
+| GET    | `/todos/<id>` | Get a specific todo |
+| PUT    | `/todos/<id>` | Update a todo       |
+| DELETE | `/todos/<id>` | Delete a todo       |
 
 ### Health & Status
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/` | Service info and status |
-| GET | `/health` | Health check (used by K8s probes) |
+| Method | Endpoint  | Description                       |
+| ------ | --------- | --------------------------------- |
+| GET    | `/`       | Service info and status           |
+| GET    | `/health` | Health check (used by K8s probes) |
 
 ### Failure Simulation
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/trigger-failure` | Put app in failure mode |
-| POST | `/remediate` | Reset failure state |
-| POST | `/crash` | Immediately crash the app |
+| Method | Endpoint           | Description               |
+| ------ | ------------------ | ------------------------- |
+| POST   | `/trigger-failure` | Put app in failure mode   |
+| POST   | `/remediate`       | Reset failure state       |
+| POST   | `/crash`           | Immediately crash the app |
 
 ## Example Usage
 
@@ -56,20 +56,20 @@ curl -X DELETE http://localhost:8080/todos/1
 
 ## Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `PORT` | HTTP server port | `8080` |
-| `FORCE_HEALTHY` | Force healthy status (overrides failure state) | `false` |
-| `INJECT_FAILURE` | Start app in failure mode (health checks fail) | `false` |
-| `DATABASE_HOST` | PostgreSQL host | `ai-sre-postgres` |
-| `DATABASE_PORT` | PostgreSQL port | `5432` |
-| `DATABASE_NAME` | Database name | `todos` |
-| `DATABASE_USER` | Database user | `postgres` |
-| `DATABASE_PASSWORD` | Database password | `postgres` |
+| Variable            | Description                                    | Default           |
+| ------------------- | ---------------------------------------------- | ----------------- |
+| `PORT`              | HTTP server port                               | `8080`            |
+| `FORCE_HEALTHY`     | Force healthy status (overrides failure state) | `false`           |
+| `INJECT_FAILURE`    | Start app in failure mode (health checks fail) | `false`           |
+| `DATABASE_HOST`     | PostgreSQL host                                | `ai-sre-postgres` |
+| `DATABASE_PORT`     | PostgreSQL port                                | `5432`            |
+| `DATABASE_NAME`     | Database name                                  | `todos`           |
+| `DATABASE_USER`     | Database user                                  | `postgres`        |
+| `DATABASE_PASSWORD` | Database password                              | `postgres`        |
 
 ### Failure Control via Environment Variables
 
-- **`INJECT_FAILURE=true`**: The application starts in failure mode. Health checks return 500, causing Kubernetes to restart the pod and eventually enter CrashLoopBackOff. Use this to simulate a broken deployment via GitOps.
+- **`INJECT_FAILURE=true`**: The application starts healthy, then **after 60-90 seconds (random delay)** begins failing health checks. This delay allows Kubernetes to complete the rollout before the failure kicks in, simulating a realistic "bad deployment" scenario where the app passes initial checks but fails later.
 
 - **`FORCE_HEALTHY=true`**: Forces health checks to pass regardless of failure state. Use this to remediate a broken deployment without restarting the app.
 
@@ -77,12 +77,22 @@ curl -X DELETE http://localhost:8080/todos/1
 
 This application is deployed via **Argo CD** from the `k8s/` directory.
 
-### Manual Docker Build (if needed)
+### Docker Build
+
+Use the Makefile to build and push the Docker image (builds for `linux/amd64` for GKE compatibility):
 
 ```bash
-cd app
-docker build --platform linux/amd64 -t europe-west1-docker.pkg.dev/friendly-path-465518-r6/archestra-public/ai_sre_demo:latest .
-docker push europe-west1-docker.pkg.dev/friendly-path-465518-r6/archestra-public/ai_sre_demo:latest
+# Build only
+make build
+
+# Push only
+make push
+
+# Build and push in one step
+make build-push
+
+# Show all available commands
+make help
 ```
 
 ## Demo Flow

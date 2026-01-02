@@ -10,6 +10,9 @@ A Flask application with PostgreSQL backend that demonstrates:
 import os
 import sys
 import logging
+import random
+import threading
+import time
 from flask import Flask, jsonify, request
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -72,7 +75,7 @@ def init_db():
 def is_healthy() -> bool:
     """
     Determine if the application should report as healthy.
-    
+
     Returns True if:
     - FORCE_HEALTHY environment variable is set to "true" (case-insensitive)
     - OR failure has not been triggered
@@ -110,7 +113,7 @@ def index():
 def health():
     """
     Health check endpoint.
-    
+
     Returns 200 if healthy, 500 if in failure mode.
     Used by Kubernetes liveness probe.
     """
@@ -168,7 +171,7 @@ def create_todo():
         data = request.get_json()
         if not data or "title" not in data:
             return jsonify({"error": "Title is required"}), 400
-        
+
         conn = get_db_connection()
         cur = conn.cursor()
         cur.execute(
@@ -201,10 +204,10 @@ def get_todo(todo_id):
         todo = cur.fetchone()
         cur.close()
         conn.close()
-        
+
         if todo is None:
             return jsonify({"error": "Todo not found"}), 404
-        
+
         return jsonify({"todo": dict(todo)}), 200
     except Exception as e:
         logger.error(f"Failed to get todo {todo_id}: {e}")
@@ -219,10 +222,10 @@ def update_todo(todo_id):
         data = request.get_json()
         if not data:
             return jsonify({"error": "Request body required"}), 400
-        
+
         conn = get_db_connection()
         cur = conn.cursor()
-        
+
         # Build dynamic update query
         updates = []
         values = []
@@ -235,23 +238,23 @@ def update_todo(todo_id):
         if "completed" in data:
             updates.append("completed = %s")
             values.append(data["completed"])
-        
+
         if not updates:
             return jsonify({"error": "No fields to update"}), 400
-        
+
         updates.append("updated_at = CURRENT_TIMESTAMP")
         values.append(todo_id)
-        
+
         query = f"UPDATE todos SET {', '.join(updates)} WHERE id = %s RETURNING *"
         cur.execute(query, values)
         todo = cur.fetchone()
         conn.commit()
         cur.close()
         conn.close()
-        
+
         if todo is None:
             return jsonify({"error": "Todo not found"}), 404
-        
+
         logger.info(f"Updated todo: {todo_id}")
         return jsonify({"todo": dict(todo)}), 200
     except Exception as e:
@@ -271,10 +274,10 @@ def delete_todo(todo_id):
         conn.commit()
         cur.close()
         conn.close()
-        
+
         if deleted is None:
             return jsonify({"error": "Todo not found"}), 404
-        
+
         logger.info(f"Deleted todo: {todo_id}")
         return jsonify({"message": "Todo deleted successfully"}), 200
     except Exception as e:
@@ -290,7 +293,7 @@ def delete_todo(todo_id):
 def trigger_failure():
     """
     Trigger failure mode.
-    
+
     After calling this endpoint:
     - Health checks will return 500
     - The application will crash after a few failed health checks
@@ -310,7 +313,7 @@ def trigger_failure():
 def remediate():
     """
     Reset failure state.
-    
+
     This clears the internal failure flag, allowing health checks to pass again.
     Note: If FORCE_HEALTHY is set to true, health checks pass regardless.
     """
@@ -327,7 +330,7 @@ def remediate():
 def crash():
     """
     Immediately crash the application.
-    
+
     This is an alternative to trigger-failure that causes an immediate exit
     rather than waiting for health check failures.
     """
@@ -339,15 +342,31 @@ def crash():
 # Application Startup
 # =============================================================================
 
+def _delayed_failure_trigger(delay_seconds: int):
+    """Background thread that triggers failure after a delay."""
+    global _failure_triggered
+    logger.warning(f"INJECT_FAILURE=true - Failure will trigger in {delay_seconds} seconds...")
+    time.sleep(delay_seconds)
+    _failure_triggered = True
+    logger.error(f"DELAYED FAILURE TRIGGERED after {delay_seconds}s - Health checks will now fail!")
+
+
 # Initialize database on module load (works with gunicorn)
 with app.app_context():
     logger.info("Initializing database on startup...")
     init_db()
-    
-    # Check for INJECT_FAILURE env var to trigger failure on startup
+
+    # Check for INJECT_FAILURE env var to trigger delayed failure
+    # Waits 60-90 seconds (random) before triggering so pod passes initial health checks
     if os.environ.get("INJECT_FAILURE", "false").lower() == "true":
-        _failure_triggered = True
-        logger.error("INJECT_FAILURE=true - Application starting in failure mode!")
+        delay = random.randint(60, 90)
+        failure_thread = threading.Thread(
+            target=_delayed_failure_trigger,
+            args=(delay,),
+            daemon=True
+        )
+        failure_thread.start()
+        logger.warning(f"INJECT_FAILURE=true - Delayed failure scheduled in {delay}s (app will be healthy until then)")
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
