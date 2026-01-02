@@ -343,6 +343,11 @@ def crash():
 with app.app_context():
     logger.info("Initializing database on startup...")
     init_db()
+    
+    # Check for INJECT_FAILURE env var to trigger failure on startup
+    if os.environ.get("INJECT_FAILURE", "false").lower() == "true":
+        _failure_triggered = True
+        logger.error("INJECT_FAILURE=true - Application starting in failure mode!")
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))

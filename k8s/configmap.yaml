@@ -10,6 +10,8 @@ data:
   # Set to "true" to force the application to always report healthy
   # This is used for remediation when the app enters failure mode
   FORCE_HEALTHY: "false"
+  # Set to "true" to inject a failure on startup (causes health checks to fail)
+  INJECT_FAILURE: "true"
   # Database connection settings
   DATABASE_HOST: "ai-sre-postgres"
   DATABASE_PORT: "5432"
