@@ -102,6 +102,22 @@ make build-push
 make help
 ```
 
+## ConfigMap & Rolling Updates
+
+This project uses Kustomize's `configMapGenerator` to automatically trigger pod restarts when configuration changes. The ConfigMap name includes a content hash, so any change to `kustomization.yaml` triggers a rolling update.
+
+```bash
+# View generated ConfigMap name (includes hash suffix)
+kubectl kustomize k8s/ | grep "name: ai-sre-demo-config"
+# Output: name: ai-sre-demo-config-c58hct92t6
+```
+
+**To change configuration:**
+
+1. Edit `k8s/kustomization.yaml` → update `configMapGenerator.literals`
+2. Commit and push
+3. ArgoCD syncs → new ConfigMap created → pods automatically restart
+
 ## Demo Flow
 
 ### Option A: API-triggered failure (quick demo)
@@ -111,13 +127,14 @@ make help
 3. **Observe**: Grafana alerts fire, notifications sent to MS Teams via OnCall
 4. **Remediate**: `POST /remediate` or set `FORCE_HEALTHY=true` in ConfigMap
 
-### Option B: Code-based failure (AI SRE demo)
+### Option B: Config-based failure (AI SRE demo)
 
 1. **Normal Operation**: App is running healthy
-2. **Trigger Failure**: Set `ENABLE_BUGGY_FEATURE=true` in ConfigMap, ArgoCD syncs
-3. **App Crashes**: Pod enters CrashLoopBackOff due to bug in `buggy_feature.py`
-4. **Observe**: Grafana alerts fire, AI agent receives alert
-5. **AI Investigation**: Agent uses MCP tools to check logs, find error, locate code
-6. **AI Fix**: Agent fixes bug in `buggy_feature.py`, pushes commit to repo
-7. **ArgoCD Deploy**: ArgoCD detects change, deploys fixed code
-8. **Recovery**: App starts successfully, alerts resolve
+2. **Trigger Failure**: Change `ENABLE_BUGGY_FEATURE=true` in `k8s/kustomization.yaml`, commit and push
+3. **ArgoCD Syncs**: New ConfigMap hash triggers rolling update
+4. **App Crashes**: Pod enters CrashLoopBackOff due to bug in `buggy_feature.py`
+5. **Alert Fires**: Grafana detects CrashLoopBackOff, notifies MS Teams via OnCall
+6. **AI Investigation**: Agent uses MCP tools to check logs, find error, check config
+7. **AI Fix**: Agent changes `ENABLE_BUGGY_FEATURE=false` in kustomization.yaml, commits
+8. **ArgoCD Deploy**: ArgoCD syncs, new ConfigMap triggers pod restart
+9. **Recovery**: App starts successfully, alerts resolve
