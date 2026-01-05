@@ -27,5 +27,7 @@ def process_experimental_data():
     # TODO: Initialize this variable properly before using it
     data = None
     
-    # This line will crash because 'data' is None
-    return data.upper()
+    # Check if data is not None before calling .upper()
+    if data is not None:
+        return data.upper()
+    return None
