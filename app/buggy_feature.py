@@ -24,10 +24,8 @@ def process_experimental_data():
     BUG: The 'data' variable is not initialized, causing an AttributeError.
     FIX: Initialize 'data' with a proper string value, e.g., data = "initialized"
     """
-    # TODO: Initialize this variable properly before using it
-    data = None
+    # Initialize data with a proper string value
+    data = "experimental_data_initialized"
     
-    # Check if data is not None before calling .upper()
-    if data is not None:
-        return data.upper()
-    return None
+    # Process the data and return the result
+    return data.upper()
