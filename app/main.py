@@ -347,9 +347,15 @@ with app.app_context():
     # Load experimental feature if enabled
     if os.environ.get("ENABLE_BUGGY_FEATURE", "false").lower() == "true":
         logger.info("Loading experimental feature (ENABLE_BUGGY_FEATURE=true)...")
-        from buggy_feature import process_experimental_data
-        result = process_experimental_data()
-        logger.info(f"Experimental feature result: {result}")
+        try:
+            from buggy_feature import process_experimental_data
+            result = process_experimental_data()
+            logger.info(f"Experimental feature result: {result}")
+        except AttributeError as e:
+            logger.error(f"Failed to process experimental data: {e}")
+            logger.error("Check that all required environment variables are set")
+            # Optionally re-raise to maintain crash behavior for testing
+            # raise
     else:
         logger.info("Experimental feature disabled (ENABLE_BUGGY_FEATURE=false)")
 

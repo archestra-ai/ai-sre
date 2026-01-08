@@ -24,8 +24,15 @@ def process_experimental_data():
     BUG: The 'data' variable is not initialized, causing an AttributeError.
     FIX: Initialize 'data' with a proper string value, e.g., data = "initialized"
     """
-    # Initialize data with a proper string value
-    data = "experimental_data_initialized"
+    import os
     
-    # Process the data and return the result
+    # Get data from environment variable with proper None-checking
+    data = os.environ.get("EXPERIMENTAL_DATA")
+    
+    # Add proper None-checking and provide a default value
+    if data is None:
+        data = "default_experimental_data"
+        print(f"Warning: EXPERIMENTAL_DATA not set, using default: {data}")
+    
+    # Now safe to call .upper() since data is guaranteed to be a string
     return data.upper()
